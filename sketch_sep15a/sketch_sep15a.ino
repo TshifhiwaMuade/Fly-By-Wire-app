@@ -19,20 +19,17 @@ uint8_t csum(const uint8_t* b, uint8_t n) {
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(115200);
+  Serial.begin(250000);
 
   radio.begin();
   radio.setAutoAck(true);
   radio.setPALevel(RF24_PA_LOW);
   radio.setDataRate(RF24_250KBPS);
-  radio.setChannel(100);               // move away from noisy Wi-Fi overlap
+  radio.setChannel(100);              
   radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
   radio.openWritingPipe(address);
   radio.stopListening();
-
-  // Uncomment to dump config once:
-  // radio.printDetails();
 }
 
 void loop() {

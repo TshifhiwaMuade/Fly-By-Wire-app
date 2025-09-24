@@ -5,8 +5,8 @@ import serial
 
 # === CONFIG ===
 PORT      = "COM11"      # Update if needed
-BAUD      = 115200
-RATE_HZ   = 100
+BAUD      = 250000
+RATE_HZ   = 200
 DEADZONE  = 0.05
 START     = 0xAA
 
@@ -23,12 +23,14 @@ def main():
         sys.exit(1)
     js = pygame.joystick.Joystick(0)
     js.init()
-    print(f"Using joystick: {js.get_name()} with {js.get_numaxes()} axes")
+    #print(f"Using joystick: {js.get_name()} with {js.get_numaxes()} axes")
 
-    ser = serial.Serial(PORT, BAUD, timeout=0)
-    time.sleep(2)                # give Arduino time after port opens
+    ser = serial.Serial(PORT, BAUD, timeout=0, write_timeout=0)
+    time.sleep(1)                
     ser.reset_input_buffer()
     t_delay = 1.0 / RATE_HZ
+    t_next = time.perf_counter()
+    last_print=0.0
 
     running = True
 
@@ -55,7 +57,7 @@ def main():
 
             ser.write(frame)
 
-            # --- Print to terminal ---
+            # Print output to terminal
             print(f"Joystick → X:{x:.3f} Y:{y:.3f} | Int16: ({xi}, {yi}) Btn:{btn} | Frame:{frame}")
 
             time.sleep(t_delay)
