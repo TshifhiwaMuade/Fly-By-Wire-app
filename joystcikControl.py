@@ -112,353 +112,223 @@ class VisualizerHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             
             html_content = '''<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✈️ Aircraft Joystick Visualizer</title>
+    <title>Fly-By-Wire System Visualizer</title>
     <style>
         body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 20px;
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0f1c3c 0%, #1a3c72 100%);
-            color: white;
-            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .header {
-            text-align: center;
+        h1 {
+            font-size: 32px;
             margin-bottom: 30px;
+            color: #FFD700;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
         }
-        .title {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .status {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            animation: pulse 2s infinite;
-        }
-        .simulation { background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; color: #ff6b6b; }
-        .serial { background: rgba(76, 205, 80, 0.2); border: 1px solid #4ccd50; color: #4ccd50; }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
-        .panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .aircraft-display {
+        .attitude-indicator {
+            width: 800px;            /* Increased from 400px */
+            height: 800px;           /* Increased from 400px */
+            margin: 20px auto;
             position: relative;
-            width: 300px;
-            height: 300px;
-            margin: 0 auto 30px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
             overflow: hidden;
+            border: 15px solid #333;  /* Increased border thickness */
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
         }
-        .horizon-line {
+        .horizon {
             position: absolute;
+            width: 1600px;           /* Doubled from original */
+            height: 1600px;          /* Doubled from original */
             top: 50%;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #4ecdc4, transparent);
-            transform: translateY(-50%);
+            left: 50%;
+            transform-origin: center;
+            transition: transform 0.1s linear;
         }
-        .pitch-lines {
+        .sky {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            height: 50%;
+            background: #7EC0EE;
         }
-        .pitch-line {
+        .ground {
             position: absolute;
+            bottom: 0;
             left: 0;
-            width: 100%;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.2);
+            right: 0;
+            height: 50%;
+            background: #8B4513;
         }
-        .pitch-label {
-            position: absolute;
-            left: 10px;
-            transform: translateY(-50%);
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-        .aircraft-symbol {
+        .reference-marker {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 120px;
-            height: 40px;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            border: 2px solid #ff6b6b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.1s ease;
+            z-index: 10;
+        }
+        .aircraft-symbol {
+            width: 200px;            /* Increased from 100px */
+            height: 200px;           /* Increased from 100px */
+            position: relative;
         }
         .aircraft-symbol::before {
-            content: '✈️';
-            font-size: 20px;
-            filter: grayscale(1) brightness(2);
+            content: '';
+            position: absolute;
+            width: 240px;            /* Increased from 120px */
+            height: 12px;            /* Increased from 8px */
+            background: #FFD700;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
-        .values-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .value-display {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .value-label {
-            font-size: 0.9em;
-            opacity: 0.7;
-            margin-bottom: 5px;
-        }
-        .value-number {
-            font-size: 1.4em;
-            font-weight: bold;
-            color: #4ecdc4;
-            text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
-        }
-        .button-indicator {
-            display: inline-block;
-            width: 60px;
-            height: 60px;
+        .aircraft-symbol::after {
+            content: '';
+            position: absolute;
+            width: 12px;             /* Increased from 8px */
+            height: 12px;            /* Increased from 8px */
+            background: #FFD700;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2em;
-            transition: all 0.2s ease;
-            margin: 0 auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
-        .button-indicator.pressed {
-            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
-            border-color: white;
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
-            transform: scale(1.1);
+        .pitch-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
         }
-        .frame-display {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            word-break: break-all;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .pitch-line {
+            position: absolute;
+            width: 200px;
+            height: 2px;
+            background: white;
+            left: 50%;
+            transform: translateX(-50%);
         }
-        .frame-label {
-            color: #4ecdc4;
-            margin-bottom: 10px;
-            font-weight: bold;
+        .pitch-text {
+            position: absolute;
+            color: white;
+            left: calc(50% + 110px);
+            transform: translateY(-50%);
+            font-size: 14px;
         }
-        .connection-status {
+        .roll-indicator {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            top: 0;
+            left: 0;
+        }
+        .roll-marker {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: white;
+            left: 50%;
+            transform-origin: bottom;
+        }
+        .values {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
+            margin-top: 20px;
+            font-size: 24px;         /* Increased from 18px */
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 30px;
             border-radius: 10px;
-            background: rgba(0, 0, 0, 0.2);
-        }
-        .instructions {
-            text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            border: 1px solid #333;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="title">✈️ Aircraft Joystick Visualizer</h1>
-        <div class="status" id="statusIndicator">CONNECTING...</div>
-    </div>
-    
-    <div class="instructions">
-        <p><strong>Aircraft Controls:</strong> Forward (push) = Nose Down | Backward (pull) = Nose Up</p>
-    </div>
-    
-    <div class="container">
-        <div class="panel">
-            <h2 style="text-align: center; margin-bottom: 20px;">✈️ Aircraft Attitude Display</h2>
-            
-            <div class="aircraft-display" id="aircraftDisplay">
-                <div class="pitch-lines" id="pitchLines"></div>
-                <div class="horizon-line"></div>
-                <div class="aircraft-symbol" id="aircraftSymbol"></div>
-            </div>
-
-            <div class="values-grid">
-                <div class="value-display">
-                    <div class="value-label">X-Axis (Roll)</div>
-                    <div class="value-number" id="xValue">0.000</div>
-                </div>
-                <div class="value-display">
-                    <div class="value-label">Y-Axis (Pitch)</div>
-                    <div class="value-number" id="yValue">0.000</div>
-                </div>
-            </div>
+    <h1>Fly-By-Wire System Visualizer</h1>
+    <div class="attitude-indicator">
+        <div class="horizon" id="horizon">
+            <div class="sky"></div>
+            <div class="ground"></div>
+            <div class="pitch-lines" id="pitchLines"></div>
         </div>
-
-        <div class="panel">
-            <h2 style="text-align: center; margin-bottom: 20px;">📊 Data Display</h2>
-            
-            <div class="values-grid">
-                <div class="value-display">
-                    <div class="value-label">X Integer</div>
-                    <div class="value-number" id="xiValue">0</div>
-                </div>
-                <div class="value-display">
-                    <div class="value-label">Y Integer</div>
-                    <div class="value-number" id="yiValue">0</div>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin: 20px 0;">
-                <div class="value-label" style="margin-bottom: 15px;">Button State</div>
-                <div class="button-indicator" id="buttonIndicator">OFF</div>
-            </div>
-
-            <div class="frame-display">
-                <div class="frame-label">📡 Frame Data</div>
-                <div id="frameData">Waiting for data...</div>
-            </div>
+        <div class="reference-marker">
+            <div class="aircraft-symbol"></div>
         </div>
+        <div class="roll-indicator" id="rollIndicator"></div>
     </div>
-
-    <div class="connection-status">
-        <p><strong>Connection:</strong> <span id="connectionStatus">Connecting to Python script...</span></p>
-        <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+    <div class="values" id="values">
+        Pitch: 0° | Roll: 0°
     </div>
 
     <script>
         function createPitchLines() {
             const pitchLines = document.getElementById('pitchLines');
-            pitchLines.innerHTML = '';
-            
-            // Create pitch lines every 30 pixels (10 degrees)
-            for (let i = -150; i <= 150; i += 30) {
+            for(let i = -90; i <= 90; i += 10) {
+                if(i === 0) continue;
                 const line = document.createElement('div');
                 line.className = 'pitch-line';
-                line.style.top = (150 + i) + 'px';
+                line.style.top = `${50 + i}%`;
+                line.style.width = i % 20 === 0 ? '150px' : '100px';
                 
-                const label = document.createElement('div');
-                label.className = 'pitch-label';
-                label.style.top = (150 + i) + 'px';
-                label.textContent = Math.abs(i / 30 * 10) + '°';
+                const text = document.createElement('div');
+                text.className = 'pitch-text';
+                text.textContent = Math.abs(i) + '°';
+                text.style.top = `${50 + i}%`;
                 
                 pitchLines.appendChild(line);
-                pitchLines.appendChild(label);
+                pitchLines.appendChild(text);
             }
         }
 
-        function updateVisualization(data) {
-            const { x, y, xi, yi, btn, frame, simulation_mode } = data;
-            
-            // Update status indicator
-            const statusIndicator = document.getElementById('statusIndicator');
-            const connectionStatus = document.getElementById('connectionStatus');
-            
-            if (simulation_mode) {
-                statusIndicator.textContent = 'SIMULATION MODE';
-                statusIndicator.className = 'status simulation';
-                connectionStatus.textContent = 'Simulation Mode - No hardware connected';
-            } else {
-                statusIndicator.textContent = 'SERIAL CONNECTED';
-                statusIndicator.className = 'status serial';
-                connectionStatus.textContent = 'Connected to hardware';
+        function createRollMarkers() {
+            const rollIndicator = document.getElementById('rollIndicator');
+            for(let i = -60; i <= 60; i += 10) {
+                const marker = document.createElement('div');
+                marker.className = 'roll-marker';
+                marker.style.transform = `rotate(${i}deg)`;
+                marker.style.height = i % 30 === 0 ? '20px' : '10px';
+                rollIndicator.appendChild(marker);
             }
-            
-            // Update aircraft attitude
-            const aircraftSymbol = document.getElementById('aircraftSymbol');
-            const display = document.getElementById('aircraftDisplay');
-            
-            // Apply roll (x-axis) as rotation
-            const rollDegrees = x * 30; // ±30 degrees roll
-            aircraftSymbol.style.transform = `translate(-50%, -50%) rotate(${rollDegrees}deg)`;
-            
-            // Apply pitch (y-axis) as vertical movement with aircraft convention
-            // Forward (positive y) = nose down = aircraft moves up in display
-            // Backward (negative y) = nose up = aircraft moves down in display
-            const pitchOffset = y * 100; // ±100 pixels movement for pitch
-            aircraftSymbol.style.top = `calc(50% + ${pitchOffset}px)`;
-            
-            // Update text values
-            document.getElementById('xValue').textContent = x.toFixed(3);
-            document.getElementById('yValue').textContent = y.toFixed(3);
-            document.getElementById('xiValue').textContent = xi;
-            document.getElementById('yiValue').textContent = yi;
-            
-            // Update button indicator
-            const btnIndicator = document.getElementById('buttonIndicator');
-            if (btn === 1) {
-                btnIndicator.classList.add('pressed');
-                btnIndicator.textContent = 'ON';
-            } else {
-                btnIndicator.classList.remove('pressed');
-                btnIndicator.textContent = 'OFF';
-            }
-            
-            // Update frame data
-            document.getElementById('frameData').textContent = frame;
-            
-            // Update last update time
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
-        // Poll for data from Python script
-        async function fetchData() {
+        function updateAttitude(data) {
+            const horizon = document.getElementById('horizon');
+            const values = document.getElementById('values');
+            
+            // Convert joystick values to degrees
+            const rollDeg = -data.x * 60;  // Roll: ±60 degrees
+            const pitchDeg = data.y * 45;  // Pitch: ±45 degrees
+            
+            // Update horizon transformation
+            horizon.style.transform = `translate(-50%, -50%) rotate(${rollDeg}deg) translateY(${pitchDeg}%)`;
+            
+            // Update values display
+            values.textContent = `Pitch: ${-pitchDeg.toFixed(1)}° | Roll: ${rollDeg.toFixed(1)}°`;
+        }
+
+        // Initialize pitch lines and roll markers
+        createPitchLines();
+        createRollMarkers();
+
+        // Poll for data updates
+        setInterval(async () => {
             try {
                 const response = await fetch('/data');
-                if (response.ok) {
-                    const data = await response.json();
-                    updateVisualization(data);
-                }
+                const data = await response.json();
+                updateAttitude(data);
             } catch (error) {
-                console.log('Waiting for Python script...');
+                console.error('Error fetching data:', error);
             }
-        }
-
-        // Initialize pitch lines and start polling
-        createPitchLines();
-        setInterval(fetchData, 50);
-        fetchData();
+        }, 16);
     </script>
 </body>
 </html>'''
@@ -530,16 +400,42 @@ def main():
                         running = False
                 elif event.type == pygame.QUIT:
                     running = False
+                # Add joystick hotplug support
+                elif event.type == pygame.JOYDEVICEADDED:
+                    print("Joystick connected!")
+                    js = pygame.joystick.Joystick(0)
+                    js.init()
+                elif event.type == pygame.JOYDEVICEREMOVED:
+                    print("Joystick disconnected!")
 
-            # Axes - NO inversion of Y axis for aircraft controls
-            x = apply_deadzone(js.get_axis(0), DEADZONE)
-            y = apply_deadzone(js.get_axis(1), DEADZONE)
-            # Note: Y axis is NOT inverted to maintain aircraft convention
-
-            xi = int(clamp(x, -1.0, 1.0) * 32767)
-            yi = int(clamp(y, -1.0, 1.0) * 32767)
-
-            btn = 1 if (js.get_numbuttons() > 0 and js.get_button(0)) else 0
+            # Get joystick axes with proper scaling and aircraft convention
+            try:
+                # Read raw joystick values
+                x = js.get_axis(0)  # Roll (left-right)
+                y = js.get_axis(1)  # Pitch (forward-backward)
+                
+                # Apply deadzone
+                x = apply_deadzone(x, DEADZONE)
+                y = apply_deadzone(y, DEADZONE)
+                
+                # Invert Y axis for proper aircraft behavior:
+                # Pulling back (negative Y) = nose up (positive pitch)
+                # Pushing forward (positive Y) = nose down (negative pitch)
+                y = y  # Remove the previous -y inversion since we want natural aircraft behavior
+                
+                # Scale values
+                xi = int(clamp(x, -1.0, 1.0) * 32767)
+                yi = int(clamp(y, -1.0, 1.0) * 32767)
+                
+                # Get button state
+                btn = 1 if (js.get_numbuttons() > 0 and js.get_button(0)) else 0
+                
+                # Debug output
+                print(f"Raw Joystick: X={x:.3f} Y={y:.3f}")
+                
+            except pygame.error:
+                print("Joystick error - check connection")
+                x, y, xi, yi, btn = 0, 0, 0, 0, 0
 
             payload = struct.pack("<BhhB", START, xi, yi, btn)
             csum = checksum(payload[1:])
@@ -553,7 +449,7 @@ def main():
 
             # Print the input from the joystick to terminal
             mode_str = "[SIMULATION]" if SIMULATION_MODE else "[SERIAL]"
-            print(f"{mode_str} Joystick → X:{x:.3f} Y:{y:.3f} | Int16: ({xi}, {yi}) Btn:{btn} | Frame:{frame}")
+            print(f"{mode_str} Joystick → X:{x:.3f} Y:{y:.3f} | Int16: ({xi}, {yi}) Btn:{btn}")
 
             time.sleep(t_delay)
 
