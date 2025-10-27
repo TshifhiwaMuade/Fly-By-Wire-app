@@ -16,7 +16,7 @@ const uint8_t SERVO_Y_3     = 10;    // follows Y (change to X if preferred)
 Servo sxL, sxR, sy1, sy2, sy3;
 
 const int16_t MOVE_THRESH = 300;
-const int     TRAVEL_DEG  = 80;      // more obvious movement
+const int     TRAVEL_DEG  = 50;      
 const int     CENTER_DEG  = 90;
 const uint32_t FAILSAFE_MS = 800;    // recenter if no packets in this time
 

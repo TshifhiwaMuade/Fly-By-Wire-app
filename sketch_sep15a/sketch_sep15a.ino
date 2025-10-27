@@ -19,7 +19,7 @@ uint8_t csum(const uint8_t* b, uint8_t n) {
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(250000);
+  Serial.begin(115200);
 
   radio.begin();
   radio.setAutoAck(true);
