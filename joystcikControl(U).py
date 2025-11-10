@@ -4,7 +4,7 @@ import pygame
 import serial
 
 # === CONFIG ===
-PORT      = "COM10"      # Update if needed to the right port
+PORT      = "COM11"      # Update if needed to the right port
 BAUD      = 115200
 RATE_HZ   = 100
 DEADZONE  = 0.05
